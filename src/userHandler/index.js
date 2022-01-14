@@ -191,10 +191,11 @@ export default class UserHandler{
                 body
             })
             .then(
-                success => console.log(success),
-                err => alert(`Error: ${err}`)
-            );
-        return this;   
+                success => success.text()
+                    .then(console.log)
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this;  
     }
 
     async editPropertyExamples({method, propertyId}){

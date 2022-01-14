@@ -1,4 +1,3 @@
-import { off } from "npm";
 import React, {useEffect, useState} from "react";
 import {Navigate} from 'react-router-dom';
 
@@ -169,15 +168,23 @@ export default function({UserHandler}){
 
     const saveTableData = ({propertyId, rowNumber, propertyNumber}) => {
       const property = frameExamples[rowNumber][propertyNumber];
+      if(!property) return;
+      if(property.property !== propertyId){
+        alert('Ошибка: property.property !== propertyId');
+        return;
+      }
+      //UserHandler.createPropertyExample({value: property.value, rowNumber, propertyId, frameId: currentFrame.id})
       console.log(property);
       console.log('propertyId >> ' + propertyId );
+      console.log('rowNumber >> ' + rowNumber );
+      console.log('propertyNumber >> ' + propertyNumber );
     };
 
     const renderTable = () => {
       const emptyRow = new Array(frameProperties.length)
         .fill(null)
         .map((item, index) => {return {property: frameProperties[index].id, value: ''}});
-      //console.log(emptyRow);
+      console.log(emptyRow);
       return Object.keys(frameExamples).map(rowNumber => {
         let rowData = frameExamples[rowNumber];
         if(rowData.length < emptyRow.length) rowData = [...emptyRow].map((item, index) => rowData[index] || item);
@@ -186,11 +193,14 @@ export default function({UserHandler}){
             <td>{rowNumber}</td>
             {rowData.map((item, index) => {
               const {property, value} = item;
-              return (<td><input onBlur={() => saveTableData({propertyId: property, rowNumber, propertyNumber: index})} value={value}  onChange={(e) => setFrameExamples(x => {
+              return (<td key={`rowData_${index}`} >
+                <input onBlur={() => saveTableData({propertyId: property, rowNumber, propertyNumber: index})} 
+                  value={value}  
+                  onChange={(e) => setFrameExamples(x => {
                 //console.log(x);
-                // let dataRef = x[rowNumber][index];
-                // if(!dataRef) dataRef = {};
-                // dataRef.value = e.target.value;
+                //let dataRef = x[rowNumber][index];
+                if(!x[rowNumber][index]) x[rowNumber][index] = {property};
+                x[rowNumber][index].value = e.target.value;
                 return {...x};
               })} /></td>)
             })}
