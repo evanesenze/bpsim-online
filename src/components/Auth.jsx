@@ -1,15 +1,18 @@
 import React, {useRef} from "react";
+import userHandler from '../userHandler';
 import styled from 'styled-components';
+import {BrowserRouter as Router, Routes, Route ,Link, Navigate, useNavigate} from 'react-router-dom';
 
-const Auth = styled.div`
+const AuthDiv = styled.div`
     width: 100%;
     height: 100%;
     display: flex;
     justify-content: center;
     align-items: center;
     flex-direction: column;
-    & div {
+    & .wrapper {
         display: flex;
+        flex-direction: column;
         height: 15%;
         width: 40%;
         background-color: orange;
@@ -17,8 +20,9 @@ const Auth = styled.div`
         border-radius: 10px;
         justify-content: space-around;
         
-        & input {
-            width: 30%;
+        & div input {
+            height: 100%;
+            width: 100%;
             outline: none;
             border: none;
             border-bottom: 1px solid black;
@@ -26,8 +30,8 @@ const Auth = styled.div`
             background-color: orange;
         }
 
-        & button {
-            width 20%;
+        & div button {
+            width 100%;
             background-color: orange;
             outline: none;
             border: 1px solid black;
@@ -42,24 +46,33 @@ const Auth = styled.div`
     }
 `;
 
-export default function({createUser}){
+function Auth({setUserHandler}){
     const username = useRef();
     const password = useRef();
-
-    const doLogin = () => {
-        const u = username.current.value;
-        const p = password.current.value;
-        createUser({username: u, password: p});
+    //const [cookies, setCookie] = useCookies(['csrftoken']);
+    const nav = useNavigate();
+    const UserHandler = new userHandler();
+    const doReg = async () => {
+        await UserHandler
+            .doRegistration({username: username.current.value, password: password.current.value})
+            .then(uh => setUserHandler(x => uh))
+            .then(uh => nav('/main'))
+            .catch(err => alert(err));
     };
 
     return (
-        <Auth>
+        <AuthDiv>
             <span>Вход в систему</span>
-            <div>
-                <input ref={username} placeholder="Введите ник для системы" />
-                <input ref={password} placeholder="Введите пароль для системы" />
-                <button onClick={doLogin} >Войти</button>
+            <div className="wrapper">
+                <div><input ref={username} placeholder="Введите ник для системы" /></div>
+                <div><input ref={password} placeholder="Введите пароль для системы" /></div>
+                <div>
+                    <button onClick={doReg} >Sign Up</button>
+                    {/* <button onClick={() => nav('/main')} >Go</button> */}
+                </div>
             </div>
-        </Auth>
+        </AuthDiv>
     )
 }
+
+export default Auth;
