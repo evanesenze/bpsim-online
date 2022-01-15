@@ -31,6 +31,26 @@ export default class UserHandler{
         return cookieValue;
     }
 
+    addFrameExamplesRow(){
+        return new Promise((resolve, reject) => {
+            try{
+                if(!this.user.frameExamples) this.user.frameExamples = {}
+                let rowCount = Object.keys(this.user.frameExamples).length;
+                this.user.frameExamples = {...this.user.frameExamples, [rowCount + 1]: []}
+                resolve(this);
+            }catch(error) {reject(error);}
+        });
+    }
+
+    resetFindMethodCach(){
+        return new Promise((resolve, reject) => {
+            try{
+                this.user.executeFindMethodCach = {};
+                resolve(this);
+            }catch(error){reject(error);}
+        });
+    }
+
     async doRegistration({username, password}){
         console.log('doRegistration');
         const body = new FormData();
@@ -118,6 +138,7 @@ export default class UserHandler{
         .catch(err => {throw new Error(err)});
         return this;
     }
+
     async createProperty({name, defaultValue, frameId}){
         const body = new FormData();
         body.append('name', name);
@@ -143,7 +164,6 @@ export default class UserHandler{
             .catch(err => {throw new Error(err)});
         return this;
     }
-    
     async editProperty({method, propertyId}){
         await fetch(this._serverUrl + `editproperty/${propertyId}`, {method})
         .then(() => {
@@ -161,7 +181,7 @@ export default class UserHandler{
                         console.log(res);
                         //const data = JSON.parse(text);
                         const frameExamples = JSON.parse(res.result);
-                        console.log(frameExamples)
+                        //console.log(frameExamples)
                         //const data = JSON.parse().result;
                         this._saveUser({frameExamples});
                     })
@@ -180,7 +200,7 @@ export default class UserHandler{
             .catch(err => {throw new Error(err)});
         return this;
     }
-    async createPropertyExample({value, rowNumber, propertyId, frameId}){
+    async createPropertyExample({value, rowNumber, propertyId, frameId, propertyNumber}){
         const body = new FormData();
         body.append('value', value);
         body.append('frameExample', rowNumber);
@@ -191,111 +211,187 @@ export default class UserHandler{
                 body
             })
             .then(
-                success => success.text()
-                    .then(console.log)
+                success => success.json()
+                    .then(res => this.user.frameExamples[rowNumber][propertyNumber] = res) //
                     .catch(err => {throw new Error(err)}))
             .catch(err => {throw new Error(err)});
         return this;  
     }
-
-    async editPropertyExamples({method, propertyId}){
-
+    async editPropertyExamples({method, propertyExampleId, rowNumber=0, propertyNumber=0, value=''}){
+        switch (method) {
+            case 'DELETE':
+                await fetch(this._serverUrl + `editpropertyexample/${propertyExampleId}`, {method})
+                    .then(() => {
+                        this.user.frameExamples[rowNumber] = this.user.frameExamples[rowNumber]
+                            .filter(item => item.id !== propertyExampleId)
+                        //delete this.user.frameExamples[rowNumber][propertyNumber]
+                        console.log(this.user.frameExamples);
+                    })
+                    .catch(err => {throw new Error(err)});
+                break;
+            case 'PUT':
+                const body = new FormData();
+                body.append('value', value);
+                await fetch(this._serverUrl + `editpropertyexample/${propertyExampleId}`, {method, body})
+                    .then(() => {
+                        this.user.frameExamples[rowNumber][propertyNumber].value = value;
+                        // this.user.frameExamples[rowNumber] = this.user.frameExamples[rowNumber]
+                        //     .filter(item => item.id !== propertyExampleId)
+                        //delete this.user.frameExamples[rowNumber][propertyNumber]
+                        console.log(this.user.frameExamples);
+                    })
+                    .catch(err => {throw new Error(err)}); 
+                break;
+            default:
+                break;
+        }
+        
+        
+        return this;
     }
 
-    async getFindMethods_({frameId}){
+    async getFindMethods({frameId}){
+        await fetch(this._serverUrl + `getfindmethods/${frameId}`, {method: 'GET'})
+            .then(
+                success => success.json()
+                    .then(res => this._saveUser({frameMethods: res}))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this;
     }
-    async createFindMethod({propertiesNames, name, frame}){
+    async createFindMethod({propertiesNames, name, frameId}){
         const body = new FormData();
         body.append('propertiesNames', propertiesNames);
         body.append('name', name);
-        body.append('frame', frame);
+        body.append('frame', frameId);
         await fetch(this._serverUrl + 'createfindmethod/', {
                 method: 'POST',
                 body
             })
             .then(
-                success => console.log(success),
-                err => alert(`Error: ${err}`)
-            );
+                success => success.json()
+                    .then(res => this.user.frameMethods.push(res))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this; 
+    }
+    async editFindMethod({method, methodId}){
+        await fetch(this._serverUrl + `editfindmethod/${methodId}`, {method})
+        .then(() => {
+            this.user.frameMethods = this.user.frameMethods.filter(item => item.id !== methodId);
+        })
+        .catch(err => {throw new Error(err)});
         return this;
     }
-    async editFindMethod_({methodId}){
+
+    async getUseCases({projectId}){
+        await fetch(this._serverUrl + `getusecases/${projectId}`, {method: 'GET'})
+            .then(
+                success => success.json()
+                    .then(res => this._saveUser({projectUseCases: res}))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this;
     }
-    async getUseCases_({projectId}){
-    }
-    async createUseCase({name, project}){
+    async createUseCase({name, projectId}){
         const body = new FormData();
-        body.append('project', project);
+        body.append('project', projectId);
         body.append('name', name);
         await fetch(this._serverUrl + 'createusecase/', {
                 method: 'POST',
                 body
             })
             .then(
-                success => console.log(success),
-                err => alert(`Error: ${err}`)
-            );
+                success => success.json()
+                    .then(res => this.user.projectUseCases.push(res))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this; 
+    }
+    async editUseCase({method, useCaseId}){
+        await fetch(this._serverUrl + `editusecase/${useCaseId}`, {method})
+        .then(() => {
+            this.user.projectUseCases = this.user.projectUseCases.filter(item => item.id !== useCaseId);
+        })
+        .catch(err => {throw new Error(err)});
         return this;
     }
-    async editUseCase({useCaseId}){
+
+    async getFindMethodsExamples({useCaseId}){
+        await fetch(this._serverUrl + `getfindmethodexamples/${useCaseId}`, {method: 'GET'})
+            .then(
+                success => success.json()
+                    // .then(console.log)
+                    .then(res => this._saveUser({useCaseMethodsExamples: res}))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this;
     }
-    async getFindMethodsExamples_({useCaseId}){
-    }
-    async createFindMethodExamples({parameters, index, method, usecase}){
+    async createFindMethodExamples({parameters, index, methodId, usecaseId}){
         const body = new FormData();
         body.append('parameters', parameters);
         body.append('index', index);
-        body.append('method', method);
-        body.append('usecase', usecase);
+        body.append('method', methodId);
+        body.append('usecase', usecaseId);
         await fetch(this._serverUrl + 'createfindmethodexample/', {
                 method: 'POST',
                 body
             })
             .then(
-                success => console.log(success),
-                err => alert(`Error: ${err}`)
-            );
+                success => success.json()
+                    .then(res => this.user.useCaseMethodsExamples.push(res))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this; 
+    }
+    async editFindMethodExamples({method, methodExampleId}){
+        await fetch(this._serverUrl + `editfindmethodexample/${methodExampleId}`, {method})
+        .then(() => {
+            this.user.useCaseMethodsExamples = this.user.useCaseMethodsExamples.filter(item => item.id !== methodExampleId);
+        })
+        .catch(err => {throw new Error(err)});
         return this;
     }
-    async editFindMethodExamples_({methodExampleId}){
-    }
-    async executeFirstFindMethod_({methodExampleId}){
-    }
-    async executeNextFindMethod_({nextMethodExampleId, currentResult}){
-    }
-    
-    
-    
-    
 
-    // async removeProject({projectName}){
-    //     if(!this.user) throw new Error('No user created');
-    //     const body = JSON.stringify({
-    //         user: this.user,
-    //         data: {
-    //             project_name: projectName
-    //         }
-    //     });
-    //     await fetch(this._serverUrl + 'deleteProject/', {
-    //             method: 'POST',
-    //             headers: {'Content-Type': 'application/json'},
-    //             body
-    //         })
-    //         .then(
-    //             success => success
-    //                 .json()
-    //                 .then(data => {
-    //                     console.log(data);
-    //                 })
-    //                 .catch(err => alert(`Error: ${err}`)),
-    //             err => alert(`Error: ${err}`)
-    //         );
-    // }
-
-    // async checkLogin(){
-    //     await fetch(this._serverUrl, {
-    //         method: 'GET',
-    //     }).then(success => success.json().then(console.log), err => console.log(err));
-    // }
-
+    async executeFirstFindMethod({methodExampleId}){
+        await fetch(this._serverUrl + `executefirstfindmethod/${methodExampleId}`, {method: 'GET'})
+        .then(
+            success => success.json()
+                .then(res => {
+                    const obj = {
+                        resultOriginal: res.result,
+                        resultView: JSON.parse(res.result)
+                    };
+                    this._saveUser({executeFindMethodCach: {1: obj}});
+                    console.log(obj);
+                })
+                // .then(res => this._saveUser({useCaseMethodsExamples: res}))
+                .catch(err => {throw new Error(err)}))
+        .catch(err => {throw new Error(err)});
+    return this;
+    }
+    async executeNextFindMethod({nextMethodExampleId, currentResult, executeFindMethodIndex}){
+        const body = new FormData();
+        body.append('findmethodexample_id', nextMethodExampleId);
+        body.append('result', currentResult);
+        await fetch(this._serverUrl + 'executenextfindmethod/', {
+                method: 'POST',
+                body
+            })
+            .then(
+                success => success.json()
+                    .then(res => {
+                        const obj = {
+                            resultOriginal: res.result,
+                            resultView: JSON.parse(res.result)
+                        };
+                        this.user.executeFindMethodCach = {...this.user.executeFindMethodCach, [executeFindMethodIndex]: obj};
+                        // this._saveUser({executeFindMethodCach: {}});
+                        console.log(obj);
+                    })
+                    //.then(res => this.user.useCaseMethodsExamples.push(res))
+                    .catch(err => {throw new Error(err)}))
+            .catch(err => {throw new Error(err)});
+        return this; 
+    }
 }

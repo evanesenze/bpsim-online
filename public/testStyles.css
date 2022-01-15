@@ -18,17 +18,18 @@ ul{
     padding: 10px;
 }
 
-.wrapper{
-    display: inline;
-    /* align-items: flex-start; */
-}
-
 .properties-table{
     border-collapse:collapse;
 }
 
 .table{
     width: 50%;
+}
+
+.block_group{
+    /* display: inline-block; */
+    /* background-color: brown; */
+    padding: 10px;
 }
 
 .block {
